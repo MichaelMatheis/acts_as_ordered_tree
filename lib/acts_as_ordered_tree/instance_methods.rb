@@ -50,7 +50,7 @@ module ActsAsOrderedTree
       nodes.reverse!
 
       # 3. create fake scope
-      ActsAsOrderedTree::Relation::Preloaded.new(self.class).
+      ActsAsOrderedTree::Relation::Preloaded.new(self.class.base_class).
           where(:id => nodes.map(&:id).compact).
           extending(Arrangeable).
           records(nodes)
@@ -94,7 +94,7 @@ module ActsAsOrderedTree
     def descendants
       records = fetch_self_and_descendants - [self]
 
-      ActsAsOrderedTree::Relation::Preloaded.new(self.class).
+      ActsAsOrderedTree::Relation::Preloaded.new(self.class.base_class).
           where(:id => records.map(&:id).compact).
           extending(Arrangeable).
           records(records)
@@ -104,7 +104,7 @@ module ActsAsOrderedTree
     def self_and_descendants
       records = fetch_self_and_descendants
 
-      ActsAsOrderedTree::Relation::Preloaded.new(self.class).
+      ActsAsOrderedTree::Relation::Preloaded.new(self.class.base_class).
           where(:id => records.map(&:id)).
           extending(Arrangeable).
           records(records)
@@ -279,7 +279,7 @@ module ActsAsOrderedTree
       tenacious_transaction do
         if pos != :root && target
           # load object if node is not an object
-          target = self.class.lock(true).find(target)
+          target = self.class.base_class.lock(true).find(target)
         elsif pos == :root
           # Obtain lock on all root nodes
           ordered_tree_scope.
@@ -299,7 +299,7 @@ module ActsAsOrderedTree
         # nothing changed - quit
         return if parent_id == parent_id_was && position == position_was
 
-        self.class.lock(true).find(self)
+        self.class.base_class.lock(true).find(self)
         self[position_column], self[parent_column] = position, parent_id
 
         move_kind = case
@@ -452,13 +452,13 @@ module ActsAsOrderedTree
 
       parent_id_new = self[parent_column]
       unless parent_id_new == parent_id_was
-        self.class.increment_counter(children_counter_cache_column, parent_id_new) if parent_id_new
-        self.class.decrement_counter(children_counter_cache_column, parent_id_was) if parent_id_was
+        self.class.base_class.increment_counter(children_counter_cache_column, parent_id_new) if parent_id_new
+        self.class.base_class.decrement_counter(children_counter_cache_column, parent_id_was) if parent_id_was
       end
     end
 
     def arel #:nodoc:
-      self.class.arel_table
+      self.class.base_class.arel_table
     end
 
     def ordered_tree_scope #:nodoc:
